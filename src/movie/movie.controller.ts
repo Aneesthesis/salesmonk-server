@@ -1,15 +1,13 @@
-// admin.controller.ts
-import {
-  Controller,
-  Get,
-  Post,
-  Headers,
-  Put,
-  Param,
-  InternalServerErrorException,
-  Body,
-} from '@nestjs/common';
+import { Controller, Get, Post, Headers, Param, Body } from '@nestjs/common';
 import { MovieService } from './movie.service';
+
+// review.dto.ts
+export class AddReviewDto {
+  movieId: string;
+  reviewerName: string;
+  rating: number;
+  comments: string;
+}
 
 @Controller('/api/movies')
 export class MovieController {
@@ -48,40 +46,39 @@ export class MovieController {
     }
   }
 
-  @Get('/movies/:id')
-  async user(@Param('id') movieId: string) {
+  @Get('/movies/:id/reviews')
+  async reviewList(@Headers() headers: Record<string, string>) {
     try {
-      const movie = await this.movieService.findMovieById(movieId);
-      return { movie };
+      const reviews = await this.movieService.findAllReviews();
+      return { reviews };
     } catch (error) {
-      console.error('Error while fetching movie:', (error as Error).message);
-      return { error };
+      console.error(
+        'Error while fetching all reviews:',
+        (error as Error).message,
+      );
+
+      return { status: 403, error };
     }
   }
 
-  //   @Put('/movies/:userId/toggleBlock')
-  //   async toggleBlock(
-  //     @Param('userId') userId: string,
-  //     @Headers() headers: Record<string, string>,
-  //   ) {
-  //     try {
-  //       const authorizationToken = JSON.stringify(headers.authorization);
-  //       const updatedUser = await this.userService.toggleBlocking(
-  //         userId,
-  //         authorizationToken,
-  //       );
-  //       if (updatedUser) {
-  //         return {
-  //           success: true,
-  //           message: 'User blocking toggled successfully',
-  //           updatedUser,
-  //         };
-  //       } else {
-  //         return { success: false, message: 'User not found' };
-  //       }
-  //     } catch (error) {
-  //       console.error('Error while toggling blocking for user:');
-  //       throw new InternalServerErrorException('Error toggling user blocking');
-  //     }
-  //   }
+  @Post('/reviews')
+  async addReview(
+    @Headers() headers: Record<string, string>,
+    @Body() reviewData: AddReviewDto,
+  ) {
+    try {
+      const newReview = await this.movieService.addReviewToMovie(
+        reviewData.movieId,
+        reviewData.reviewerName,
+        reviewData.rating,
+        reviewData.comments,
+      );
+
+      return { review: newReview };
+    } catch (error) {
+      console.error('Error while adding a review:', (error as Error).message);
+
+      return { status: 403, error };
+    }
+  }
 }
